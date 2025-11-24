@@ -67,8 +67,7 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
                     </span>
                     <span className="flex items-center gap-1 text-white font-medium">
                         <Star size={14} className="text-yellow-400" fill="currentColor" /> {app.rating}
-                        {/* RESTORED REVIEW COUNT */}
-                        <span className="text-nexus-sub text-xs">({app.reviewCount})</span>
+                        <span className="text-nexus-sub text-xs">({app.reviewCount} 条评价)</span>
                     </span>
                     <span className="flex items-center gap-1 text-nexus-sub">
                         <Download size={14} /> {app.downloads.toLocaleString()} 下载
