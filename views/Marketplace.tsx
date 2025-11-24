@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AIApp } from '../types';
 import { Star, Download, Crown, TrendingUp, Filter } from 'lucide-react';
@@ -78,8 +77,8 @@ const Marketplace: React.FC<MarketplaceProps> = ({ apps, onSelectApp, onViewLead
                         onClick={() => setSelectedCategory(cat)}
                         className={`px-4 py-1.5 text-sm font-bold rounded-full transition-colors whitespace-nowrap border ${
                             selectedCategory === cat 
-                          ? 'bg-nexus-green border-nexus-green text-white' 
-                          : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-nexus-card'}`}
+                          ? 'bg-[#10B981] border-[#10B981] text-white' // Solid green active
+                          : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-nexus-card'}`} // Transparent inactive
                       >
                         {cat}
                       </button>

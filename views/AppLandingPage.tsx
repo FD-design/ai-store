@@ -61,14 +61,15 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
                   <p className="text-nexus-sub text-lg mb-4">{app.shortDescription}</p>
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <span className="px-2 py-0.5 rounded bg-nexus-purple/10 border border-nexus-purple/20 text-nexus-purple font-medium">
+                    <span className="px-2 py-0.5 rounded bg-nexus-card border border-nexus-input text-nexus-sub font-medium">
                         {app.category}
                     </span>
                     <span className="flex items-center gap-1 text-white font-medium">
                         <Star size={14} className="text-yellow-400" fill="currentColor" /> {app.rating}
-                        <span className="text-nexus-sub text-xs">({app.reviewCount} 条评价)</span>
+                        {/* RESTORED REVIEW COUNT */}
+                        <span className="text-nexus-sub text-xs">({app.reviewCount})</span>
                     </span>
-                    <span className="flex items-center gap-1 text-nexus-blue">
+                    <span className="flex items-center gap-1 text-nexus-sub">
                         <Download size={14} /> {app.downloads.toLocaleString()} 下载
                     </span>
                   </div>
@@ -96,7 +97,7 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
             <div className="flex border-b border-nexus-input gap-8">
                 {[
                     { id: 'overview', label: '概览' },
-                    { id: 'reviews', label: '评价' },
+                    { id: 'reviews', label: `评价 (${app.reviewCount})` },
                     { id: 'docs', label: '使用指南' }
                 ].map((tab) => {
                     if (tab.id === 'docs' && !app.helpDocs) return null;
@@ -139,7 +140,7 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
                                 disabled={trialRemaining <= 0}
                                 className={`px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors border ${
                                     trialRemaining > 0 
-                                    ? 'bg-transparent border-nexus-green text-nexus-green hover:bg-nexus-green/10' 
+                                    ? 'bg-transparent border-white/20 text-white hover:border-white hover:bg-white/5' // White/Transparent style for trial
                                     : 'bg-nexus-input border-transparent text-gray-500 cursor-not-allowed'
                                 }`}
                             >
@@ -170,7 +171,7 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {app.features.map((feature, idx) => (
                                 <div key={idx} className="bg-nexus-card border border-nexus-input p-4 rounded-lg flex items-start gap-3">
-                                    <div className="mt-1.5 w-1.5 h-1.5 bg-nexus-blue rounded-full"></div>
+                                    <div className="mt-1.5 w-1.5 h-1.5 bg-nexus-green rounded-full"></div>
                                     <p className="text-gray-300 text-sm font-medium">{feature}</p>
                                 </div>
                             ))}
@@ -182,8 +183,8 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
                         <h3 className="text-xs font-bold text-nexus-sub uppercase tracking-wider mb-3">技术架构</h3>
                         <div className="flex flex-wrap gap-2">
                             {app.toolsUsed.map((tool, idx) => (
-                                <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-400">
-                                    <Cpu size={14} className="text-blue-400" />
+                                <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-nexus-card border border-nexus-input rounded text-xs text-nexus-sub">
+                                    <Cpu size={14} className="text-nexus-sub" />
                                     {tool}
                                 </div>
                             ))}
@@ -195,7 +196,7 @@ const AppLandingPage: React.FC<AppLandingPageProps> = ({
             {activeTab === 'reviews' && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-bold text-white">用户反馈</h2>
+                        <h2 className="text-lg font-bold text-white">用户反馈 ({app.reviewCount})</h2>
                         <select className="nexus-select text-sm py-1.5 w-40">
                             <option>最新评价</option>
                             <option>评分最高</option>

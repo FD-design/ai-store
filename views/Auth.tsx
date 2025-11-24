@@ -45,13 +45,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
              </div>
 
              <div className="p-8">
-                 {/* Social Login */}
+                 {/* Social Login - RESTORED */}
                  <button 
                     type="button"
                     onClick={() => onLogin('user')}
-                    className="w-full bg-[#24292e] hover:bg-[#2f363d] text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors mb-6 border border-transparent hover:border-gray-500"
+                    className="w-full bg-[#24292e] hover:bg-[#2f363d] text-white py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-3 transition-colors mb-6 border border-transparent hover:border-gray-500 shadow-md"
                  >
-                     <Github size={18} /> 使用 GitHub 继续
+                     <Github size={20} /> 使用 GitHub 继续
                  </button>
 
                  <div className="relative mb-6">
@@ -59,7 +59,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         <div className="w-full border-t border-nexus-input"></div>
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-nexus-card px-2 text-nexus-sub">或者使用邮箱</span>
+                        <span className="bg-nexus-card px-3 text-nexus-sub font-medium">或者使用邮箱</span>
                     </div>
                  </div>
 
@@ -78,16 +78,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-nexus-sub group-focus-within:text-nexus-green transition-colors" size={18} />
                         <input type="password" className="nexus-input w-full py-2.5 pl-10 text-sm" placeholder="密码" required />
                     </div>
-
-                    {!isLogin && (
-                        <div className="bg-nexus-base p-3 rounded-lg border border-nexus-input mt-4">
-                            <label className="text-xs font-bold text-nexus-sub block mb-2">选择身份类型</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button type="button" onClick={() => setRole('user')} className={`py-2 text-xs font-bold rounded transition-colors ${role === 'user' ? 'bg-nexus-green text-white shadow-lg shadow-green-900/20' : 'bg-nexus-card text-nexus-sub hover:text-white'}`}>普通用户</button>
-                                <button type="button" onClick={() => setRole('creator')} className={`py-2 text-xs font-bold rounded transition-colors ${role === 'creator' ? 'bg-nexus-green text-white shadow-lg shadow-green-900/20' : 'bg-nexus-card text-nexus-sub hover:text-white'}`}>创作者</button>
-                            </div>
-                        </div>
-                    )}
 
                     <button type="submit" disabled={isLoading} className="nexus-btn-primary w-full py-3 text-sm mt-6 flex items-center justify-center gap-2 group shadow-lg shadow-green-900/20">
                         {isLoading ? '处理中...' : (isLogin ? '进入控制台' : '创建账户')}
