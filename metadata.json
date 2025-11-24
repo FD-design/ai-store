@@ -1,0 +1,5 @@
+{
+  "name": "AI Nexus - AI Tool Marketplace",
+  "description": "A premier marketplace for creators to publish AI tools (Gemini, GPT based) and for users to discover, subscribe, or buy them. Handles payouts, taxes, and subscriptions.",
+  "requestFramePermissions": []
+}

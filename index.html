@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Nexus - 智能矩阵</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              nexus: {
+                base: '#111827',     // Gray 900 - Background
+                card: '#1F2937',     // Gray 800 - Surface
+                input: '#374151',    // Gray 700 - Inputs/Borders
+                green: '#10B981',    // Emerald 500 - Primary Action
+                'green-hover': '#059669', // Emerald 600
+                blue: '#3B82F6',     // Blue 500 - Secondary/Info
+                purple: '#8B5CF6',   // Violet 500 - Accent/Creative
+                text: '#F9FAFB',     // Gray 50 - Main Text
+                sub: '#9CA3AF',      // Gray 400 - Subtext
+              }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #111827;
+        color: #F9FAFB;
+        overflow-x: hidden;
+      }
+
+      /* Custom Scrollbar - Modern Minimal */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #374151;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #4B5563;
+      }
+
+      /* Modern Form Elements */
+      .nexus-input {
+        background-color: #1F2937;
+        border: 1px solid #374151;
+        color: white;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+      }
+      .nexus-input:focus {
+        outline: none;
+        border-color: #10B981;
+        box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+      }
+
+      .nexus-btn-primary {
+        background-color: #10B981;
+        color: white;
+        font-weight: 600;
+        border-radius: 0.5rem;
+        transition: background-color 0.2s;
+      }
+      .nexus-btn-primary:hover {
+        background-color: #059669;
+      }
+      .nexus-btn-primary:disabled {
+        background-color: #374151;
+        color: #9CA3AF;
+        cursor: not-allowed;
+      }
+
+      .nexus-card {
+        background-color: #1F2937;
+        border-radius: 0.75rem;
+        border: 1px solid transparent; /* Prepare for hover border */
+      }
+
+      /* Fixed Select Dropdown Style */
+      .nexus-select {
+        background-color: #1F2937;
+        border: 1px solid #374151;
+        color: white;
+        padding: 0.5rem 2.5rem 0.5rem 1rem; /* Increased right padding */
+        border-radius: 0.5rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center; /* Adjusted arrow position */
+        background-repeat: no-repeat;
+        background-size: 1.25em 1.25em;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+      .nexus-select:focus {
+        outline: none;
+        border-color: #10B981;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
