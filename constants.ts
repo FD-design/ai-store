@@ -52,6 +52,7 @@ export const MOCK_APPS: AIApp[] = [
     deployment: {
       type: DeploymentType.WEB_APP,
       url: 'https://codewhiz.ai-nexus.demo',
+      repoUrl: 'https://github.com/codewhiz/app'
     },
     toolsUsed: ['Gemini 1.5 Pro', 'TypeScript', 'VS Code API', 'LangChain'],
     authorName: '极客工坊',

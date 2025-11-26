@@ -25,6 +25,7 @@ export interface DeploymentConfig {
   apiEndpoint?: string;
   docsUrl?: string;
   apiKeyHeader?: string;
+  repoUrl?: string; // GitHub repository URL for auto-deployment
 }
 
 export interface VersionHistory {

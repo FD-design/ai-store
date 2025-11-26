@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { AIApp } from '../types';
-import { ShieldCheck, Upload, FileText, ArrowLeft, Bot, Lock, AlertTriangle, CheckCircle, Search, Activity } from 'lucide-react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { AIApp, DeploymentType } from '../types';
+import { ShieldCheck, Upload, FileText, ArrowLeft, Bot, Lock, AlertTriangle, CheckCircle, Search, Activity, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface AppRuntimeProps {
   app: AIApp;
@@ -12,6 +13,8 @@ interface AppRuntimeProps {
 const AppRuntime: React.FC<AppRuntimeProps> = ({ app, onExit, isTrial = false, trialRemaining = 0 }) => {
   const [step, setStep] = useState<'upload' | 'scanning' | 'analyzing' | 'report'>('upload');
   const [progress, setProgress] = useState(0);
+  const [iframeLoading, setIframeLoading] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Block access if trial expired
   if (isTrial && trialRemaining <= 0) {
@@ -29,7 +32,39 @@ const AppRuntime: React.FC<AppRuntimeProps> = ({ app, onExit, isTrial = false, t
       );
   }
 
-  // LegalEagle Specific Demo Logic
+  // Effect to handle Iframe Handshake (Context Injection)
+  useEffect(() => {
+    if ((app.deployment.type === DeploymentType.INTERNAL || app.deployment.type === DeploymentType.WEB_APP) && iframeRef.current) {
+        const handleLoad = () => {
+            setIframeLoading(false);
+            // SEND CONTEXT TO APP
+            // In a real scenario, this allows the embedded app to know who the user is without them logging in again.
+            const contextData = {
+                type: 'NEXUS_INIT',
+                user: {
+                    id: 'u_current_user',
+                    name: 'Demo User',
+                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+                    theme: 'dark'
+                },
+                license: {
+                    type: isTrial ? 'TRIAL' : 'FULL',
+                    trialRemaining: trialRemaining
+                }
+            };
+            
+            // Post message to the iframe window
+            iframeRef.current?.contentWindow?.postMessage(contextData, '*');
+        };
+
+        const iframe = iframeRef.current;
+        iframe.addEventListener('load', handleLoad);
+        return () => iframe.removeEventListener('load', handleLoad);
+    }
+  }, [app, isTrial, trialRemaining]);
+
+
+  // 1. LegalEagle Specific Native Demo Logic (Built-in React Component)
   if (app.id === '3') {
     const startAnalysis = () => {
         setStep('scanning');
@@ -194,40 +229,74 @@ const AppRuntime: React.FC<AppRuntimeProps> = ({ app, onExit, isTrial = false, t
     );
   }
 
-  // Generic Demo Runtime for other apps
+  // 2. Iframe Runtime for WEB_APP / INTERNAL / GRADIO types
+  if (app.deployment.type === DeploymentType.WEB_APP || app.deployment.type === DeploymentType.INTERNAL || app.deployment.type === DeploymentType.GRADIO) {
+      // Use a placeholder URL if it's a mock internal URL
+      const targetUrl = app.deployment.url.startsWith('/') 
+        ? 'https://example.com' // In reality, this would be the actual hosted URL
+        : app.deployment.url;
+
+      return (
+        <div className="min-h-screen bg-nexus-base flex flex-col font-sans h-screen">
+            {/* Runtime Toolbar */}
+            <div className="bg-nexus-card border-b border-nexus-input h-14 flex items-center justify-between px-4 shrink-0 z-20">
+              <div className="flex items-center gap-4">
+                 <button onClick={onExit} className="p-2 text-nexus-sub hover:text-white"><ArrowLeft size={18} /></button>
+                 <div className="flex items-center gap-2">
+                     <img src={app.iconUrl} className="w-6 h-6 rounded" alt="" />
+                     <span className="font-bold text-white text-sm">{app.title}</span>
+                 </div>
+              </div>
+              <div className="flex items-center gap-3">
+                  {isTrial && (
+                      <div className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded text-xs font-bold border border-amber-500/20">
+                          试用中 ({trialRemaining}次)
+                      </div>
+                  )}
+                  <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="p-2 text-nexus-sub hover:text-white" title="在浏览器打开">
+                      <ExternalLink size={16} />
+                  </a>
+                  <button onClick={() => { setIframeLoading(true); iframeRef.current?.contentWindow?.location.reload(); }} className="p-2 text-nexus-sub hover:text-white">
+                      <RefreshCw size={16} />
+                  </button>
+              </div>
+            </div>
+    
+            {/* Iframe Container */}
+            <div className="flex-1 bg-black relative">
+                {iframeLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-nexus-base z-10">
+                        <div className="flex flex-col items-center">
+                            <div className="w-10 h-10 border-4 border-nexus-input border-t-nexus-green rounded-full animate-spin mb-3"></div>
+                            <p className="text-nexus-sub text-sm">正在建立安全连接...</p>
+                        </div>
+                    </div>
+                )}
+                <iframe 
+                    ref={iframeRef}
+                    src={targetUrl}
+                    className="w-full h-full border-0"
+                    title={app.title}
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+            </div>
+        </div>
+      );
+  }
+
+  // 3. Fallback for API types (Should generally not reach here if handled correctly in parent)
   return (
     <div className="min-h-screen bg-nexus-base flex flex-col font-sans">
-        {/* Toolbar */}
-        <div className="bg-nexus-card border-b border-nexus-input h-14 flex items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-             <button onClick={onExit} className="p-2 text-nexus-sub hover:text-white"><ArrowLeft size={18} /></button>
-             <div className="flex items-center gap-2">
-                 <img src={app.iconUrl} className="w-6 h-6 rounded" alt="" />
-                 <span className="font-bold text-white text-sm">{app.title}</span>
-             </div>
-          </div>
-          <div className="text-xs text-nexus-green flex items-center gap-1">
-              <ShieldCheck size={12} /> 安全环境 (通用模式)
-          </div>
+        <div className="bg-nexus-card border-b border-nexus-input h-14 flex items-center px-4">
+           <button onClick={onExit} className="p-2 text-nexus-sub hover:text-white"><ArrowLeft size={18} /></button>
         </div>
-
-        {/* Workspace */}
-        <div className="flex-1 p-8 flex items-center justify-center">
-            <div className="text-center">
-                <div className="w-20 h-20 bg-nexus-card rounded-2xl flex items-center justify-center mx-auto mb-6 border border-nexus-input">
-                        <Upload size={32} className="text-nexus-sub" />
-                </div>
-                <h2 className="text-xl font-bold text-white mb-2">运行环境就绪</h2>
-                <p className="text-nexus-sub mb-6">这是一个通用的应用运行容器演示。</p>
-                <div className="flex justify-center gap-3">
-                    <button onClick={onExit} className="px-6 py-2 border border-nexus-input rounded text-white hover:bg-nexus-card">
-                        结束运行
-                    </button>
-                    <button className="nexus-btn-primary px-6 py-2">
-                        执行任务
-                    </button>
-                </div>
-            </div>
+        <div className="flex-1 flex items-center justify-center p-8 text-center">
+             <div>
+                <Bot size={48} className="text-nexus-sub mx-auto mb-4"/>
+                <h2 className="text-white font-bold mb-2">API 仅限代码调用</h2>
+                <p className="text-nexus-sub max-w-md mx-auto mb-6">此应用提供 REST API 服务，请参考开发者文档在您的代码中集成。</p>
+                <button onClick={onExit} className="nexus-btn-primary px-6 py-2">返回文档</button>
+             </div>
         </div>
     </div>
   );

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Bot, DollarSign, Upload, CheckCircle, TrendingUp, Edit3, Trash2, Plus, Globe, Code, Server } from 'lucide-react';
+import { Bot, DollarSign, Upload, CheckCircle, TrendingUp, Edit3, Trash2, Plus, Globe, Code, Server, Github, Terminal, Loader2, Link as LinkIcon } from 'lucide-react';
 import { AIApp, PricingModel, DeploymentType, DeploymentConfig, AppStatus } from '../types';
 import { generateAppDescription, suggestPricing } from '../services/geminiService';
 import { MOCK_PAYOUTS, MOCK_SALES_DATA } from '../constants';
@@ -31,7 +32,15 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
   const [appName, setAppName] = useState('');
   const [category, setCategory] = useState('生产力');
   const [deploymentType, setDeploymentType] = useState<DeploymentType>(DeploymentType.WEB_APP);
+  
+  // Deployment Source Logic
+  const [deploySource, setDeploySource] = useState<'url' | 'github'>('url');
+  const [repoUrl, setRepoUrl] = useState('');
   const [deploymentUrl, setDeploymentUrl] = useState('');
+  const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle');
+  const [buildLogs, setBuildLogs] = useState<string[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
   const [apiDocs, setApiDocs] = useState('');
   const [helpDocs, setHelpDocs] = useState('');
   const [coreFunction, setCoreFunction] = useState('');
@@ -45,13 +54,23 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [buildLogs]);
+
   const resetForm = () => {
       setStep(1);
       setEditingId(null);
       setAppName('');
       setCategory('生产力');
       setDeploymentType(DeploymentType.WEB_APP);
+      setDeploySource('url');
+      setRepoUrl('');
       setDeploymentUrl('');
+      setBuildStatus('idle');
+      setBuildLogs([]);
       setApiDocs('');
       setHelpDocs('');
       setCoreFunction('');
@@ -68,6 +87,13 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
       setCategory(app.category);
       setDeploymentType(app.deployment.type);
       setDeploymentUrl(app.deployment.url);
+      if (app.deployment.repoUrl) {
+          setDeploySource('github');
+          setRepoUrl(app.deployment.repoUrl);
+          setBuildStatus('success'); // Assume built if editing existing
+      } else {
+          setDeploySource('url');
+      }
       setApiDocs(app.deployment.docsUrl || '');
       setHelpDocs(app.helpDocs || '');
       setCoreFunction('现有应用更新'); 
@@ -110,6 +136,34 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
     setIsGenerating(false);
   };
 
+  const handleGithubDeploy = () => {
+      if (!repoUrl) return;
+      setBuildStatus('building');
+      setBuildLogs(['> Initializing build environment...', '> Cloning repository...']);
+      
+      let step = 0;
+      const steps = [
+          '> Installing dependencies (npm install)...',
+          '> Running build script (npm run build)...',
+          '> Optimizing production assets...',
+          '> Verifying security protocols...',
+          '> Deploying to Nexus Cloud Edge...'
+      ];
+
+      const interval = setInterval(() => {
+          if (step < steps.length) {
+              setBuildLogs(prev => [...prev, steps[step]]);
+              step++;
+          } else {
+              clearInterval(interval);
+              const generatedUrl = `https://${appName.toLowerCase().replace(/\s+/g, '-')}.nexus-deploy.com`;
+              setBuildLogs(prev => [...prev, `> Success! App deployed to: ${generatedUrl}`]);
+              setDeploymentUrl(generatedUrl);
+              setBuildStatus('success');
+          }
+      }, 800);
+  };
+
   const handlePublishClick = () => {
       setIsConfirmOpen(true);
   };
@@ -119,7 +173,8 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
     const deployConfig: DeploymentConfig = {
         type: deploymentType,
         url: deploymentUrl,
-        docsUrl: apiDocs || undefined
+        docsUrl: apiDocs || undefined,
+        repoUrl: repoUrl || undefined
     };
 
     const currentApp = editingId ? myApps.find(a => a.id === editingId) : null;
@@ -393,7 +448,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
 
               {step === 2 && (
                   <div className="space-y-6 max-w-xl mx-auto">
-                       <div className="grid grid-cols-2 gap-3">
+                       <div className="grid grid-cols-2 gap-3 mb-6">
                            {[
                                { id: DeploymentType.WEB_APP, icon: Globe, label: 'WEB 应用' },
                                { id: DeploymentType.GRADIO, icon: Code, label: 'GRADIO' },
@@ -411,23 +466,90 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
                            ))}
                        </div>
 
-                       <div>
-                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">目标 URL</label>
-                            <input 
-                                type="text" 
-                                value={deploymentUrl}
-                                onChange={(e) => setDeploymentUrl(e.target.value)}
-                                className="nexus-input w-full p-2 text-sm font-mono"
-                                placeholder="https://"
-                            />
+                       <div className="border-t border-nexus-input pt-6">
+                          <label className="block text-xs font-bold text-nexus-sub mb-3">部署源</label>
+                          <div className="flex bg-nexus-base p-1 rounded-lg border border-nexus-input mb-4">
+                              <button 
+                                onClick={() => setDeploySource('url')}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'url' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
+                              >
+                                  <LinkIcon size={14} /> 手动输入 URL
+                              </button>
+                              <button 
+                                onClick={() => setDeploySource('github')}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'github' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
+                              >
+                                  <Github size={14} /> GitHub 仓库部署
+                              </button>
+                          </div>
+
+                          {deploySource === 'url' ? (
+                               <div>
+                                    <label className="block text-xs font-bold text-nexus-sub mb-1.5">目标 URL</label>
+                                    <input 
+                                        type="text" 
+                                        value={deploymentUrl}
+                                        onChange={(e) => setDeploymentUrl(e.target.value)}
+                                        className="nexus-input w-full p-2 text-sm font-mono"
+                                        placeholder="https://your-app-domain.com"
+                                    />
+                               </div>
+                          ) : (
+                              <div className="space-y-4">
+                                   <div>
+                                       <label className="block text-xs font-bold text-nexus-sub mb-1.5">GitHub 仓库地址</label>
+                                       <div className="flex gap-2">
+                                           <input 
+                                                type="text" 
+                                                value={repoUrl}
+                                                onChange={(e) => setRepoUrl(e.target.value)}
+                                                className="nexus-input flex-1 p-2 text-sm font-mono"
+                                                placeholder="https://github.com/username/repo"
+                                           />
+                                           <button 
+                                            onClick={handleGithubDeploy}
+                                            disabled={!repoUrl || buildStatus === 'building' || buildStatus === 'success'}
+                                            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${buildStatus === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'nexus-btn-primary'}`}
+                                           >
+                                               {buildStatus === 'building' ? <Loader2 className="animate-spin" size={16} /> : buildStatus === 'success' ? <CheckCircle size={16} /> : <Terminal size={16} />}
+                                               {buildStatus === 'building' ? '构建中...' : buildStatus === 'success' ? '已部署' : '开始部署'}
+                                           </button>
+                                       </div>
+                                   </div>
+
+                                   {(buildStatus === 'building' || buildStatus === 'success') && (
+                                       <div className="bg-black border border-nexus-input rounded-lg p-3 font-mono text-xs h-40 overflow-y-auto">
+                                           {buildLogs.map((log, i) => (
+                                               <div key={i} className={`${log.includes('Error') ? 'text-red-400' : log.includes('Success') ? 'text-green-400 font-bold' : 'text-gray-400'}`}>
+                                                   {log}
+                                               </div>
+                                           ))}
+                                           <div ref={logsEndRef} />
+                                       </div>
+                                   )}
+                                   
+                                   {buildStatus === 'success' && (
+                                       <div className="animate-fade-in">
+                                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">生成的目标 URL</label>
+                                            <input 
+                                                type="text" 
+                                                value={deploymentUrl}
+                                                readOnly
+                                                className="nexus-input w-full p-2 text-sm font-mono text-green-400 bg-green-400/5 border-green-400/20"
+                                            />
+                                       </div>
+                                   )}
+                              </div>
+                          )}
                        </div>
                             
-                       <div>
+                       <div className="pt-4">
                             <label className="block text-xs font-bold text-nexus-sub mb-1.5">使用文档 (Markdown)</label>
                             <textarea 
                                 value={helpDocs}
                                 onChange={(e) => setHelpDocs(e.target.value)}
                                 className="nexus-input w-full p-2 text-sm font-mono h-32"
+                                placeholder="# 使用指南..."
                             />
                        </div>
 
