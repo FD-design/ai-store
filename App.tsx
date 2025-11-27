@@ -18,6 +18,7 @@ import NotificationCenter from './components/NotificationCenter';
 import DocsModal from './components/DocsModal';
 import { AIApp, AppStatus, Notification, User } from './types';
 import { MOCK_APPS } from './constants';
+import { User as UserIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   // User State
@@ -144,7 +145,7 @@ const App: React.FC = () => {
   };
 
   const handleSubscribe = (app: AIApp) => {
-    if (purchasedAppIds.includes(app.id)) {
+    if (purchasedAppIds?.includes(app.id)) {
         alert("您已拥有此应用，请前往资产库启动。");
         return;
     }
@@ -154,13 +155,13 @@ const App: React.FC = () => {
 
   const handlePaymentSuccess = () => {
     if (paymentTargetApp) {
-        setPurchasedAppIds(prev => [...prev, paymentTargetApp.id]);
+        setPurchasedAppIds(prev => [...(prev || []), paymentTargetApp.id]);
         addNotification('交易成功', `您已获得 "${paymentTargetApp.title}" 的使用权`, 'success');
     }
   };
 
   const handleLaunchApp = (app: AIApp) => {
-      const isOwned = purchasedAppIds.includes(app.id);
+      const isOwned = purchasedAppIds?.includes(app.id);
       
       if (!isOwned) {
           // Trial Logic
@@ -182,7 +183,7 @@ const App: React.FC = () => {
 
   const marketApps = apps.filter(app => app.status === AppStatus.PUBLISHED);
   const myApps = apps.filter(app => app.authorName === 'You' || app.authorName === '极客工坊');
-  const purchasedApps = apps.filter(app => purchasedAppIds.includes(app.id));
+  const purchasedApps = apps.filter(app => (purchasedAppIds || []).includes(app.id));
 
   if (!user) {
       return <Auth onLogin={handleLogin} />;
@@ -256,7 +257,7 @@ const App: React.FC = () => {
           <AppLandingPage 
             app={selectedApp} 
             isStandalone={isStandaloneMode}
-            isOwned={purchasedAppIds.includes(selectedApp.id)}
+            isOwned={purchasedAppIds?.includes(selectedApp.id)}
             trialRemaining={trialUsage[selectedApp.id] ?? 3}
             onBack={handleBackToMarketplace} 
             onSubscribe={handleSubscribe}
@@ -270,7 +271,7 @@ const App: React.FC = () => {
             <AppRuntime 
                 app={selectedApp} 
                 onExit={() => setCurrentView('detail')} 
-                isTrial={!purchasedAppIds.includes(selectedApp.id)}
+                isTrial={!purchasedAppIds?.includes(selectedApp.id)}
                 trialRemaining={trialUsage[selectedApp.id] ?? 3}
             />
         )}

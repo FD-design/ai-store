@@ -520,7 +520,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
                                    {(buildStatus === 'building' || buildStatus === 'success') && (
                                        <div className="bg-black border border-nexus-input rounded-lg p-3 font-mono text-xs h-40 overflow-y-auto">
                                            {buildLogs.map((log, i) => (
-                                               <div key={i} className={`${log.includes('Error') ? 'text-red-400' : log.includes('Success') ? 'text-green-400 font-bold' : 'text-gray-400'}`}>
+                                               <div key={i} className={`${(log || '').includes('Error') ? 'text-red-400' : (log || '').includes('Success') ? 'text-green-400 font-bold' : 'text-gray-400'}`}>
                                                    {log}
                                                </div>
                                            ))}

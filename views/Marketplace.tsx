@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AIApp } from '../types';
 import { Star, Download, Crown, TrendingUp, Filter } from 'lucide-react';
@@ -19,7 +20,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ apps, onSelectApp, onViewLead
   // Filtering Logic
   let listApps = apps.filter(app => {
       const matchesCategory = selectedCategory === '全部' || app.category === selectedCategory;
-      const isNotFeatured = app.id !== featuredApp.id;
+      const isNotFeatured = featuredApp ? app.id !== featuredApp.id : true;
       return matchesCategory && isNotFeatured;
   });
 
@@ -41,7 +42,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ apps, onSelectApp, onViewLead
           {/* Main Content Area (3/4 width) */}
           <div className="lg:col-span-3 space-y-8">
               {/* Featured Header Section */}
-              {selectedCategory === '全部' && (
+              {selectedCategory === '全部' && featuredApp && (
                   <div 
                     onClick={() => onSelectApp(featuredApp)}
                     className="relative rounded-2xl overflow-hidden cursor-pointer group h-[320px] bg-nexus-card border border-nexus-input hover:border-nexus-green/50 transition-colors"
