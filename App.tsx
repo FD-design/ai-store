@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Marketplace from './views/Marketplace';
@@ -245,6 +244,15 @@ const App: React.FC = () => {
             <UserProfile user={user} />
         )}
         
+        {currentView === 'dashboard' && !isStandaloneMode && (
+            <CreatorDashboard 
+                myApps={myApps}
+                onPublish={handlePublishApp}
+                onViewApp={handleSelectApp}
+                onDelete={handleDeleteApp}
+            />
+        )}
+        
         {currentView === 'settings' && !isStandaloneMode && (
             <AccountSettings user={user} />
         )}
@@ -269,50 +277,39 @@ const App: React.FC = () => {
 
         {currentView === 'runtime' && selectedApp && (
             <AppRuntime 
-                app={selectedApp} 
-                onExit={() => setCurrentView('detail')} 
+                app={selectedApp}
+                onExit={() => setCurrentView('detail')}
                 isTrial={!purchasedAppIds?.includes(selectedApp.id)}
                 trialRemaining={trialUsage[selectedApp.id] ?? 3}
             />
         )}
-
-        {currentView === 'dashboard' && !isStandaloneMode && (
-          <CreatorDashboard 
-            myApps={myApps}
-            onPublish={handlePublishApp}
-            onViewApp={handleSelectApp}
-            onDelete={handleDeleteApp}
-          />
-        )}
       </main>
 
+      {/* Modals */}
       <WalletModal 
         isOpen={isWalletOpen} 
         onClose={() => setIsWalletOpen(false)} 
       />
       
-      <PaymentModal 
-        isOpen={isPaymentOpen}
+      <PaymentModal
         app={paymentTargetApp}
+        isOpen={isPaymentOpen}
         onClose={() => setIsPaymentOpen(false)}
         onSuccess={handlePaymentSuccess}
       />
 
-      <ShareModal 
+      <ShareModal
+        app={selectedApp}
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        app={selectedApp}
       />
-
-      {/* Global Docs Modal */}
-      {docsTargetApp && (
-        <DocsModal 
-          isOpen={isDocsOpen}
-          onClose={() => setIsDocsOpen(false)}
-          title={docsTargetApp.title}
-          content={docsTargetApp.helpDocs || ''}
-        />
-      )}
+      
+      <DocsModal
+        isOpen={isDocsOpen}
+        onClose={() => setIsDocsOpen(false)}
+        title={docsTargetApp?.title || '文档'}
+        content={docsTargetApp?.helpDocs || ''}
+      />
     </div>
   );
 };

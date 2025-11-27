@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Bot, DollarSign, Upload, CheckCircle, TrendingUp, Edit3, Trash2, Plus, Globe, Code, Server, Github, Terminal, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Bot, DollarSign, Upload, CheckCircle, TrendingUp, Edit3, Trash2, Plus, Globe, Code, Server, Github, Terminal, Loader2, Link as LinkIcon, Rocket, Layout, CreditCard, Lightbulb, ArrowRight, Image as ImageIcon, Video, X } from 'lucide-react';
 import { AIApp, PricingModel, DeploymentType, DeploymentConfig, AppStatus } from '../types';
 import { generateAppDescription, suggestPricing } from '../services/geminiService';
 import { MOCK_PAYOUTS, MOCK_SALES_DATA } from '../constants';
@@ -17,6 +17,7 @@ interface CreatorDashboardProps {
 
 const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, onViewApp, onDelete }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'my-apps' | 'publish' | 'payouts'>('overview');
+  const [showGuide, setShowGuide] = useState(true);
   
   // Modal States
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -28,28 +29,37 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
   const [step, setStep] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // Form Data
+  // -- Step 1: Basics & Visuals --
   const [appName, setAppName] = useState('');
   const [category, setCategory] = useState('生产力');
-  const [deploymentType, setDeploymentType] = useState<DeploymentType>(DeploymentType.WEB_APP);
+  const [iconPreview, setIconPreview] = useState<string>('');
+  const [coverPreview, setCoverPreview] = useState<string>('');
+  const [screenshotsPreview, setScreenshotsPreview] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');
   
-  // Deployment Source Logic
+  // -- Step 2: Deployment --
+  // Default to WEB_APP and remove selector from UI
+  const [deploymentType, setDeploymentType] = useState<DeploymentType>(DeploymentType.WEB_APP);
   const [deploySource, setDeploySource] = useState<'url' | 'github'>('url');
   const [repoUrl, setRepoUrl] = useState('');
   const [deploymentUrl, setDeploymentUrl] = useState('');
+  const [apiDocsUrl, setApiDocsUrl] = useState(''); 
+  const [helpDocs, setHelpDocs] = useState('');
+  
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle');
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const [apiDocs, setApiDocs] = useState('');
-  const [helpDocs, setHelpDocs] = useState('');
+  // -- Step 3: Marketing --
   const [coreFunction, setCoreFunction] = useState('');
   const [description, setDescription] = useState('');
   const [features, setFeatures] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiTip, setAiTip] = useState('');
+
+  // -- Step 4: Pricing --
   const [price, setPrice] = useState(0);
   const [pricingModel, setPricingModel] = useState<PricingModel>(PricingModel.FREE);
-  const [aiTip, setAiTip] = useState('');
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
@@ -62,20 +72,33 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
 
   const resetForm = () => {
       setStep(1);
+      setShowGuide(true);
       setEditingId(null);
+      
+      // Reset Basics
       setAppName('');
       setCategory('生产力');
+      setIconPreview('');
+      setCoverPreview('');
+      setScreenshotsPreview([]);
+      setVideoUrl('');
+      
+      // Reset Deployment
       setDeploymentType(DeploymentType.WEB_APP);
       setDeploySource('url');
       setRepoUrl('');
       setDeploymentUrl('');
+      setApiDocsUrl('');
+      setHelpDocs('');
       setBuildStatus('idle');
       setBuildLogs([]);
-      setApiDocs('');
-      setHelpDocs('');
+      
+      // Reset Marketing
       setCoreFunction('');
       setDescription('');
       setFeatures([]);
+      
+      // Reset Pricing
       setPrice(0);
       setPricingModel(PricingModel.FREE);
       setAiTip('');
@@ -83,24 +106,36 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
 
   const handleEditApp = (app: AIApp) => {
       setEditingId(app.id);
+      setShowGuide(false);
+      
       setAppName(app.title);
       setCategory(app.category);
+      setIconPreview(app.iconUrl);
+      setCoverPreview(app.coverImageUrl || '');
+      setScreenshotsPreview(app.screenshots);
+      setVideoUrl(app.videoUrl || '');
+
       setDeploymentType(app.deployment.type);
       setDeploymentUrl(app.deployment.url);
+      setApiDocsUrl(app.deployment.docsUrl || '');
+      
       if (app.deployment.repoUrl) {
           setDeploySource('github');
           setRepoUrl(app.deployment.repoUrl);
-          setBuildStatus('success'); // Assume built if editing existing
+          setBuildStatus('success');
       } else {
           setDeploySource('url');
       }
-      setApiDocs(app.deployment.docsUrl || '');
+      
       setHelpDocs(app.helpDocs || '');
+      
       setCoreFunction('现有应用更新'); 
       setDescription(app.fullDescription);
       setFeatures(app.features);
+      
       setPrice(app.price);
       setPricingModel(app.pricingModel);
+      
       setActiveTab('publish');
       setStep(1);
       setActiveMenuId(null);
@@ -118,6 +153,25 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
           setIsDeleteModalOpen(false);
           setAppToDelete(null);
       }
+  };
+
+  // Helper for file uploads
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+      if (e.target.files && e.target.files[0]) {
+          const url = URL.createObjectURL(e.target.files[0]);
+          setter(url);
+      }
+  };
+
+  const handleScreenshotsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+          const newUrls = Array.from(e.target.files).map(file => URL.createObjectURL(file));
+          setScreenshotsPreview(prev => [...prev, ...newUrls]);
+      }
+  };
+
+  const removeScreenshot = (index: number) => {
+      setScreenshotsPreview(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAiAssist = async () => {
@@ -170,10 +224,12 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
 
   const handleConfirmPublish = () => {
     setIsConfirmOpen(false);
+    
+    // Construct deployment config based on type
     const deployConfig: DeploymentConfig = {
-        type: deploymentType,
+        type: DeploymentType.WEB_APP, // Force Web App
         url: deploymentUrl,
-        docsUrl: apiDocs || undefined,
+        docsUrl: apiDocsUrl || undefined,
         repoUrl: repoUrl || undefined
     };
 
@@ -184,10 +240,13 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
       title: appName,
       shortDescription: description.substring(0, 80) + '...',
       fullDescription: description,
-      features: features,
-      iconUrl: currentApp?.iconUrl || 'https://picsum.photos/100/100?random=' + Date.now(),
-      coverImageUrl: currentApp?.coverImageUrl || 'https://picsum.photos/800/400?random=' + Date.now(),
-      screenshots: currentApp?.screenshots || [],
+      features: features.length > 0 ? features : ['AI 驱动', '高效便捷', '安全可靠'],
+      // Use uploaded previews or fallbacks
+      iconUrl: iconPreview || currentApp?.iconUrl || 'https://picsum.photos/100/100?random=' + Date.now(),
+      coverImageUrl: coverPreview || currentApp?.coverImageUrl || 'https://picsum.photos/800/400?random=' + Date.now(),
+      screenshots: screenshotsPreview.length > 0 ? screenshotsPreview : (currentApp?.screenshots || []),
+      videoUrl: videoUrl || undefined,
+      
       deployment: deployConfig,
       toolsUsed: currentApp?.toolsUsed || ['Gemini 2.5', 'React'],
       authorName: 'You', 
@@ -221,6 +280,75 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
         return <span className="text-xs text-gray-400 bg-gray-400/10 px-2 py-0.5 rounded font-medium">草稿</span>;
     }
   };
+
+  // Internal Guide Component
+  const PublishGuide = () => (
+    <div className="animate-fade-in">
+        <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-nexus-green/10 rounded-2xl mb-4 border border-nexus-green/20">
+                <Rocket size={32} className="text-nexus-green" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">开始您的发布之旅</h2>
+            <p className="text-nexus-sub max-w-2xl mx-auto">
+                仅需四个简单步骤，即可将您的 AI 工具发布到 Nexus 市场。我们提供全流程的托管、支付和营销支持。
+            </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {[
+                {
+                    icon: Layout,
+                    title: "1. 基础信息 & 素材",
+                    desc: "打造第一印象。上传精美的图标、封面、截图和演示视频。",
+                    tips: "建议使用 1:1 的高清图标，并上传真实的演示截图。"
+                },
+                {
+                    icon: Server,
+                    title: "2. Web 应用部署",
+                    desc: "连接您的代码。支持现有的 Web URL，或直接连接 GitHub 仓库自动构建。",
+                    tips: "目前仅支持 Web Application 类型的部署。"
+                },
+                {
+                    icon: Bot,
+                    title: "3. AI 营销文案",
+                    desc: "不必为文案发愁。内置 Gemini 模型可一键生成专业的 SEO 营销文案。",
+                    tips: "生成后请人工润色核心卖点，确保准确传达产品价值。"
+                },
+                {
+                    icon: CreditCard,
+                    title: "4. 定价与商业化",
+                    desc: "定义您的商业模式。支持免费开源、一次性买断或周期订阅。",
+                    tips: "初期建议设置较低的价格或提供免费试用，以快速积累首批用户。"
+                }
+            ].map((item, idx) => (
+                <div key={idx} className="nexus-card p-6 border border-nexus-input hover:border-nexus-green/30 transition-colors group">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 bg-nexus-base rounded-lg text-white group-hover:text-nexus-green group-hover:bg-nexus-green/10 transition-colors">
+                            <item.icon size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-white mb-2">{item.title}</h3>
+                            <p className="text-sm text-nexus-sub mb-3 leading-relaxed">{item.desc}</p>
+                            <div className="text-xs bg-nexus-base border border-nexus-input px-3 py-2 rounded text-gray-400 flex gap-2">
+                                <Lightbulb size={12} className="shrink-0 mt-0.5 text-yellow-500" />
+                                <span>{item.tips}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        <div className="flex justify-center">
+            <button 
+                onClick={() => setShowGuide(false)}
+                className="nexus-btn-primary px-8 py-3 text-base flex items-center gap-2 shadow-lg shadow-nexus-green/20 hover:shadow-nexus-green/40 transition-all transform hover:-translate-y-1"
+            >
+                开始创建应用 <ArrowRight size={18} />
+            </button>
+        </div>
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" onClick={() => setActiveMenuId(null)}>
@@ -352,7 +480,6 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
                                           <div className="text-xs text-nexus-sub">安装量</div>
                                           <div className="text-white font-medium">{app.downloads.toLocaleString()}</div>
                                       </div>
-                                      {/* Restore Revenue Display */}
                                       <div className="text-right hidden sm:block">
                                           <div className="text-xs text-nexus-sub">预估收入</div>
                                           <div className="text-nexus-green font-medium">¥{(app.price * app.downloads).toLocaleString()}</div>
@@ -400,237 +527,314 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ myApps, onPublish, 
           )}
 
           {activeTab === 'publish' && (
-            <div className="nexus-card p-8 relative">
-              {/* Simple Step Indicator */}
-              <div className="flex items-center justify-between mb-8 text-sm border-b border-nexus-input pb-4">
-                 {[1, 2, 3, 4].map(s => (
-                     <div key={s} className={`flex items-center gap-2 ${step >= s ? 'text-nexus-green' : 'text-nexus-sub'}`}>
-                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border ${step >= s ? 'border-nexus-green bg-nexus-green/10' : 'border-nexus-input'}`}>
-                             {step > s ? <CheckCircle size={14}/> : s}
+            <div className="nexus-card p-8 relative min-h-[600px]">
+              {showGuide ? (
+                  <PublishGuide />
+              ) : (
+                <>
+                  {/* Step Indicator */}
+                  <div className="flex items-center justify-between mb-8 text-sm border-b border-nexus-input pb-4">
+                     {[1, 2, 3, 4].map(s => (
+                         <div key={s} className={`flex items-center gap-2 ${step >= s ? 'text-nexus-green' : 'text-nexus-sub'}`}>
+                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border ${step >= s ? 'border-nexus-green bg-nexus-green/10' : 'border-nexus-input'}`}>
+                                 {step > s ? <CheckCircle size={14}/> : s}
+                             </div>
+                             <span className="hidden sm:inline">{s === 1 ? '基础与素材' : s === 2 ? '部署' : s === 3 ? '营销' : '定价'}</span>
                          </div>
-                         <span className="hidden sm:inline">{s === 1 ? '基础' : s === 2 ? '部署' : s === 3 ? '营销' : '定价'}</span>
-                     </div>
-                 ))}
-              </div>
-
-              {step === 1 && (
-                  <div className="space-y-4 max-w-xl mx-auto">
-                        <div>
-                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">应用名称</label>
-                            <input 
-                                type="text" 
-                                value={appName}
-                                onChange={(e) => setAppName(e.target.value)}
-                                className="nexus-input w-full p-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">所属分类</label>
-                            <select 
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="nexus-select w-full p-2 text-sm"
-                            >
-                                <option>生产力</option>
-                                <option>开发工具</option>
-                                <option>设计创意</option>
-                                <option>写作辅助</option>
-                                <option>数据分析</option>
-                            </select>
-                        </div>
-                      <div className="pt-6 flex justify-end">
-                          <button onClick={nextStep} disabled={!appName} className="nexus-btn-primary px-6 py-2 text-sm">
-                              下一步
-                          </button>
-                      </div>
+                     ))}
                   </div>
-              )}
 
-              {step === 2 && (
-                  <div className="space-y-6 max-w-xl mx-auto">
-                       <div className="grid grid-cols-2 gap-3 mb-6">
-                           {[
-                               { id: DeploymentType.WEB_APP, icon: Globe, label: 'WEB 应用' },
-                               { id: DeploymentType.GRADIO, icon: Code, label: 'GRADIO' },
-                               { id: DeploymentType.API, icon: Server, label: 'API 服务' },
-                               { id: DeploymentType.INTERNAL, icon: Bot, label: '内部沙盒' }
-                           ].map((type) => (
-                               <div 
-                                key={type.id} 
-                                onClick={() => setDeploymentType(type.id)}
-                                className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${deploymentType === type.id ? 'bg-nexus-green/10 border-nexus-green text-white' : 'border-nexus-input text-nexus-sub hover:bg-nexus-base'}`}
-                               >
-                                   <type.icon size={18} />
-                                   <span className="text-sm font-medium">{type.label}</span>
-                               </div>
-                           ))}
-                       </div>
+                  {step === 1 && (
+                      <div className="space-y-6 max-w-xl mx-auto">
+                           
+                           {/* Text Inputs */}
+                           <div>
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">应用名称</label>
+                                <input 
+                                    type="text" 
+                                    value={appName}
+                                    onChange={(e) => setAppName(e.target.value)}
+                                    className="nexus-input w-full p-2 text-sm"
+                                    placeholder="例如：SuperGPT 助手"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">所属分类</label>
+                                <select 
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="nexus-select w-full p-2 text-sm"
+                                >
+                                    <option>生产力</option>
+                                    <option>开发工具</option>
+                                    <option>设计创意</option>
+                                    <option>写作辅助</option>
+                                    <option>数据分析</option>
+                                </select>
+                            </div>
 
-                       <div className="border-t border-nexus-input pt-6">
-                          <label className="block text-xs font-bold text-nexus-sub mb-3">部署源</label>
-                          <div className="flex bg-nexus-base p-1 rounded-lg border border-nexus-input mb-4">
-                              <button 
-                                onClick={() => setDeploySource('url')}
-                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'url' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
-                              >
-                                  <LinkIcon size={14} /> 手动输入 URL
-                              </button>
-                              <button 
-                                onClick={() => setDeploySource('github')}
-                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'github' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
-                              >
-                                  <Github size={14} /> GitHub 仓库部署
-                              </button>
-                          </div>
+                           <div className="border-t border-nexus-input my-2"></div>
+                           
+                           <h3 className="font-bold text-white text-sm mb-2">视觉素材</h3>
 
-                          {deploySource === 'url' ? (
-                               <div>
-                                    <label className="block text-xs font-bold text-nexus-sub mb-1.5">目标 URL</label>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Icon Upload */}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-nexus-sub">应用图标 (1:1)</label>
+                                    <div className="relative group">
+                                        <div className="w-24 h-24 rounded-2xl bg-nexus-base border border-nexus-input flex items-center justify-center overflow-hidden cursor-pointer hover:border-nexus-green transition-colors">
+                                            {iconPreview ? (
+                                                <img src={iconPreview} className="w-full h-full object-cover" alt="Icon" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <Upload size={20} className="mx-auto text-nexus-sub mb-1" />
+                                                    <span className="text-[10px] text-nexus-sub">上传图标</span>
+                                                </div>
+                                            )}
+                                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileUpload(e, setIconPreview)} />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Cover Upload */}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-nexus-sub">封面大图 (16:9)</label>
+                                    <div className="relative group w-full h-24">
+                                        <div className="w-full h-full rounded-xl bg-nexus-base border border-nexus-input flex items-center justify-center overflow-hidden cursor-pointer hover:border-nexus-green transition-colors">
+                                            {coverPreview ? (
+                                                <img src={coverPreview} className="w-full h-full object-cover" alt="Cover" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <ImageIcon size={20} className="mx-auto text-nexus-sub mb-1" />
+                                                    <span className="text-[10px] text-nexus-sub">上传封面</span>
+                                                </div>
+                                            )}
+                                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileUpload(e, setCoverPreview)} />
+                                        </div>
+                                    </div>
+                                </div>
+                           </div>
+
+                           {/* Screenshots */}
+                           <div>
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">应用截图 (可多张)</label>
+                                <div className="flex gap-2 flex-wrap">
+                                    {screenshotsPreview.map((url, idx) => (
+                                        <div key={idx} className="relative w-16 h-16 rounded border border-nexus-input overflow-hidden group">
+                                            <img src={url} className="w-full h-full object-cover" alt="" />
+                                            <button onClick={() => removeScreenshot(idx)} className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white"><X size={14}/></button>
+                                        </div>
+                                    ))}
+                                    <div className="relative w-16 h-16 rounded border border-dashed border-nexus-input hover:border-nexus-green flex items-center justify-center cursor-pointer transition-colors">
+                                        <Plus size={20} className="text-nexus-sub" />
+                                        <input type="file" multiple accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleScreenshotsUpload} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Video URL */}
+                            <div>
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">演示视频 URL</label>
+                                <div className="relative">
+                                    <Video className="absolute left-3 top-2.5 text-nexus-sub" size={16} />
                                     <input 
                                         type="text" 
-                                        value={deploymentUrl}
-                                        onChange={(e) => setDeploymentUrl(e.target.value)}
-                                        className="nexus-input w-full p-2 text-sm font-mono"
-                                        placeholder="https://your-app-domain.com"
+                                        value={videoUrl}
+                                        onChange={(e) => setVideoUrl(e.target.value)}
+                                        className="nexus-input w-full pl-9 p-2 text-sm"
+                                        placeholder="https://youtube.com/..."
                                     />
-                               </div>
-                          ) : (
-                              <div className="space-y-4">
-                                   <div>
-                                       <label className="block text-xs font-bold text-nexus-sub mb-1.5">GitHub 仓库地址</label>
-                                       <div className="flex gap-2">
-                                           <input 
-                                                type="text" 
-                                                value={repoUrl}
-                                                onChange={(e) => setRepoUrl(e.target.value)}
-                                                className="nexus-input flex-1 p-2 text-sm font-mono"
-                                                placeholder="https://github.com/username/repo"
-                                           />
-                                           <button 
-                                            onClick={handleGithubDeploy}
-                                            disabled={!repoUrl || buildStatus === 'building' || buildStatus === 'success'}
-                                            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${buildStatus === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'nexus-btn-primary'}`}
-                                           >
-                                               {buildStatus === 'building' ? <Loader2 className="animate-spin" size={16} /> : buildStatus === 'success' ? <CheckCircle size={16} /> : <Terminal size={16} />}
-                                               {buildStatus === 'building' ? '构建中...' : buildStatus === 'success' ? '已部署' : '开始部署'}
-                                           </button>
-                                       </div>
-                                   </div>
+                                </div>
+                            </div>
 
-                                   {(buildStatus === 'building' || buildStatus === 'success') && (
-                                       <div className="bg-black border border-nexus-input rounded-lg p-3 font-mono text-xs h-40 overflow-y-auto">
-                                           {buildLogs.map((log, i) => (
-                                               <div key={i} className={`${(log || '').includes('Error') ? 'text-red-400' : (log || '').includes('Success') ? 'text-green-400 font-bold' : 'text-gray-400'}`}>
-                                                   {log}
-                                               </div>
-                                           ))}
-                                           <div ref={logsEndRef} />
-                                       </div>
-                                   )}
-                                   
-                                   {buildStatus === 'success' && (
-                                       <div className="animate-fade-in">
-                                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">生成的目标 URL</label>
+                          <div className="pt-6 flex justify-end">
+                              <button onClick={nextStep} disabled={!appName} className="nexus-btn-primary px-6 py-2 text-sm">
+                                  下一步
+                              </button>
+                          </div>
+                      </div>
+                  )}
+
+                  {step === 2 && (
+                      <div className="space-y-6 max-w-xl mx-auto">
+                           
+                           <div className="p-4 bg-nexus-green/10 border border-nexus-green rounded-lg flex items-center gap-3 text-white mb-6">
+                               <Globe size={20} className="text-nexus-green" />
+                               <span className="font-bold text-sm">Web 应用部署</span>
+                               <span className="text-xs text-green-400 ml-auto bg-green-900/30 px-2 py-1 rounded">默认模式</span>
+                           </div>
+
+                           <div className="border-t border-nexus-input pt-2">
+                              <label className="block text-xs font-bold text-nexus-sub mb-3">部署源</label>
+                              <div className="flex bg-nexus-base p-1 rounded-lg border border-nexus-input mb-4">
+                                  <button 
+                                    onClick={() => setDeploySource('url')}
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'url' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
+                                  >
+                                      <LinkIcon size={14} /> 手动输入 URL
+                                  </button>
+                                  <button 
+                                    onClick={() => setDeploySource('github')}
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors ${deploySource === 'github' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-sub hover:text-white'}`}
+                                  >
+                                      <Github size={14} /> GitHub 仓库部署
+                                  </button>
+                              </div>
+
+                              {deploySource === 'url' ? (
+                                   <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">应用访问 URL</label>
                                             <input 
                                                 type="text" 
                                                 value={deploymentUrl}
-                                                readOnly
-                                                className="nexus-input w-full p-2 text-sm font-mono text-green-400 bg-green-400/5 border-green-400/20"
+                                                onChange={(e) => setDeploymentUrl(e.target.value)}
+                                                className="nexus-input w-full p-2 text-sm font-mono"
+                                                placeholder="https://myapp.vercel.app"
                                             />
+                                        </div>
+                                   </div>
+                              ) : (
+                                  <div className="space-y-4">
+                                       <div>
+                                           <label className="block text-xs font-bold text-nexus-sub mb-1.5">GitHub 仓库地址</label>
+                                           <div className="flex gap-2">
+                                               <input 
+                                                    type="text" 
+                                                    value={repoUrl}
+                                                    onChange={(e) => setRepoUrl(e.target.value)}
+                                                    className="nexus-input flex-1 p-2 text-sm font-mono"
+                                                    placeholder="https://github.com/username/repo"
+                                               />
+                                               <button 
+                                                onClick={handleGithubDeploy}
+                                                disabled={!repoUrl || buildStatus === 'building' || buildStatus === 'success'}
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${buildStatus === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'nexus-btn-primary'}`}
+                                               >
+                                                   {buildStatus === 'building' ? <Loader2 className="animate-spin" size={16} /> : buildStatus === 'success' ? <CheckCircle size={16} /> : <Terminal size={16} />}
+                                                   {buildStatus === 'building' ? '构建中...' : buildStatus === 'success' ? '已部署' : '开始部署'}
+                                               </button>
+                                           </div>
                                        </div>
-                                   )}
-                              </div>
-                          )}
-                       </div>
-                            
-                       <div className="pt-4">
-                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">使用文档 (Markdown)</label>
-                            <textarea 
-                                value={helpDocs}
-                                onChange={(e) => setHelpDocs(e.target.value)}
-                                className="nexus-input w-full p-2 text-sm font-mono h-32"
-                                placeholder="# 使用指南..."
-                            />
-                       </div>
 
-                       <div className="pt-6 flex justify-between">
-                          <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
-                          <button onClick={nextStep} disabled={!deploymentUrl} className="nexus-btn-primary px-6 py-2 text-sm">下一步</button>
-                      </div>
-                  </div>
-              )}
-
-              {step === 3 && (
-                   <div className="space-y-6 max-w-xl mx-auto">
-                       <div className="flex justify-between items-center">
-                           <h3 className="font-bold text-white">AI 营销助手</h3>
-                           <button 
-                            onClick={handleAiAssist}
-                            disabled={isGenerating || !coreFunction}
-                            className="text-xs text-nexus-green hover:underline flex items-center gap-1"
-                           >
-                               <Bot size={14}/> {isGenerating ? '生成中...' : '自动生成'}
-                           </button>
-                       </div>
-                       <div>
-                            <label className="block text-xs font-bold text-nexus-sub mb-1.5">核心功能描述</label>
-                            <textarea 
-                                value={coreFunction}
-                                onChange={(e) => setCoreFunction(e.target.value)}
-                                className="nexus-input w-full p-2 h-20 text-sm"
-                            />
-                       </div>
-                       <div>
-                           <label className="block text-xs font-bold text-nexus-sub mb-1.5">营销文案</label>
-                           <textarea 
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className="nexus-input w-full p-2 h-32 text-sm"
-                           />
-                           {aiTip && <div className="mt-2 text-xs text-nexus-green">{aiTip}</div>}
-                       </div>
-                        <div className="pt-6 flex justify-between">
-                          <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
-                          <button onClick={nextStep} disabled={!description} className="nexus-btn-primary px-6 py-2 text-sm">下一步</button>
-                        </div>
-                   </div>
-              )}
-
-              {step === 4 && (
-                   <div className="space-y-6 max-w-xl mx-auto">
-                       <div className="grid grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">收费模式</label>
-                                <select 
-                                value={pricingModel}
-                                onChange={(e) => setPricingModel(e.target.value as PricingModel)}
-                                className="nexus-select w-full p-2 text-sm"
-                                >
-                                {Object.values(PricingModel).map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                            {pricingModel !== PricingModel.FREE && (
-                            <div>
-                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">价格 (CNY)</label>
-                                <input 
-                                    type="number" 
-                                    min="0.99"
-                                    step="0.01"
-                                    value={price}
-                                    onChange={(e) => setPrice(parseFloat(e.target.value))}
-                                    className="nexus-input w-full p-2 text-sm"
+                                       {(buildStatus === 'building' || buildStatus === 'success') && (
+                                           <div className="bg-black border border-nexus-input rounded-lg p-3 font-mono text-xs h-40 overflow-y-auto">
+                                               {buildLogs.map((log, i) => (
+                                                   <div key={i} className={`${(log || '').includes('Error') ? 'text-red-400' : (log || '').includes('Success') ? 'text-green-400 font-bold' : 'text-gray-400'}`}>
+                                                       {log}
+                                                   </div>
+                                               ))}
+                                               <div ref={logsEndRef} />
+                                           </div>
+                                       )}
+                                       
+                                       {buildStatus === 'success' && (
+                                           <div className="animate-fade-in">
+                                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">生成的目标 URL</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={deploymentUrl}
+                                                    readOnly
+                                                    className="nexus-input w-full p-2 text-sm font-mono text-green-400 bg-green-400/5 border-green-400/20"
+                                                />
+                                           </div>
+                                       )}
+                                  </div>
+                              )}
+                           </div>
+                                
+                           <div className="pt-4">
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">使用文档 (Markdown)</label>
+                                <textarea 
+                                    value={helpDocs}
+                                    onChange={(e) => setHelpDocs(e.target.value)}
+                                    className="nexus-input w-full p-2 text-sm font-mono h-32"
+                                    placeholder="# 使用指南..."
                                 />
-                            </div>
-                            )}
-                       </div>
+                           </div>
 
-                       <div className="pt-8 flex justify-between">
-                          <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
-                          <button onClick={handlePublishClick} className="nexus-btn-primary px-8 py-2 text-sm">
-                              {editingId ? '更新应用' : '确认发布'}
-                          </button>
-                        </div>
-                   </div>
+                           <div className="pt-6 flex justify-between">
+                              <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
+                              <button onClick={nextStep} disabled={!deploymentUrl} className="nexus-btn-primary px-6 py-2 text-sm">下一步</button>
+                          </div>
+                      </div>
+                  )}
+
+                  {step === 3 && (
+                       <div className="space-y-6 max-w-xl mx-auto">
+                           
+                           <div className="flex justify-between items-center">
+                               <h3 className="font-bold text-white">AI 营销助手</h3>
+                               <button 
+                                onClick={handleAiAssist}
+                                disabled={isGenerating || !coreFunction}
+                                className="text-xs text-nexus-green hover:underline flex items-center gap-1"
+                               >
+                                   <Bot size={14}/> {isGenerating ? '生成中...' : '自动生成'}
+                               </button>
+                           </div>
+                           <div>
+                                <label className="block text-xs font-bold text-nexus-sub mb-1.5">核心功能描述</label>
+                                <textarea 
+                                    value={coreFunction}
+                                    onChange={(e) => setCoreFunction(e.target.value)}
+                                    className="nexus-input w-full p-2 h-20 text-sm"
+                                    placeholder="例如：基于 GPT-4 的自动化代码审计工具..."
+                                />
+                           </div>
+                           <div>
+                               <label className="block text-xs font-bold text-nexus-sub mb-1.5">营销文案</label>
+                                <textarea 
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="nexus-input w-full p-2 h-32 text-sm"
+                                />
+                               {aiTip && <div className="mt-2 text-xs text-nexus-green">{aiTip}</div>}
+                           </div>
+                            <div className="pt-6 flex justify-between">
+                              <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
+                              <button onClick={nextStep} disabled={!description} className="nexus-btn-primary px-6 py-2 text-sm">下一步</button>
+                            </div>
+                       </div>
+                  )}
+
+                  {step === 4 && (
+                       <div className="space-y-6 max-w-xl mx-auto">
+                           <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-nexus-sub mb-1.5">收费模式</label>
+                                    <select 
+                                    value={pricingModel}
+                                    onChange={(e) => setPricingModel(e.target.value as PricingModel)}
+                                    className="nexus-select w-full p-2 text-sm"
+                                    >
+                                    {Object.values(PricingModel).map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                </div>
+                                {pricingModel !== PricingModel.FREE && (
+                                <div>
+                                    <label className="block text-xs font-bold text-nexus-sub mb-1.5">价格 (CNY)</label>
+                                    <input 
+                                        type="number" 
+                                        min="0.99"
+                                        step="0.01"
+                                        value={price}
+                                        onChange={(e) => setPrice(parseFloat(e.target.value))}
+                                        className="nexus-input w-full p-2 text-sm"
+                                    />
+                                </div>
+                                )}
+                           </div>
+
+                           <div className="pt-8 flex justify-between">
+                              <button onClick={prevStep} className="px-4 py-2 text-sm text-nexus-sub hover:text-white">返回</button>
+                              <button onClick={handlePublishClick} className="nexus-btn-primary px-8 py-2 text-sm">
+                                  {editingId ? '更新应用' : '确认发布'}
+                              </button>
+                            </div>
+                       </div>
+                  )}
+                </>
               )}
             </div>
           )}
